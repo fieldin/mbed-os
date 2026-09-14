@@ -273,6 +273,18 @@ void ATHandler::lock()
     _start_time = rtos::Kernel::Clock::now();
 }
 
+bool ATHandler::trylock_for(mbed::chrono::milliseconds_u32 timeout)
+{
+#if defined AT_HANDLER_MUTEX && defined MBED_CONF_RTOS_PRESENT
+    if (!_fileHandleMutex.trylock_for(timeout)) {
+        return false;
+    }
+#endif
+    clear_error();
+    _start_time = rtos::Kernel::Clock::now();
+    return true;
+}
+
 void ATHandler::unlock()
 {
     if (_is_fh_usable && (_fileHandle->readable() || (_recv_pos < _recv_len))) {

@@ -108,6 +108,9 @@ public:
      */
     void lock();
 
+    /** Like lock(), but bounds the mutex wait. On failure, leaves parser state untouched. */
+    bool trylock_for(mbed::chrono::milliseconds_u32 timeout);
+
     /** Unlocks the mutex for file handle if AT_HANDLER_MUTEX is defined.
      */
     void unlock();
