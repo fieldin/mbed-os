@@ -915,6 +915,14 @@ static unsigned int can_speed(unsigned int pclk, unsigned int cclk, unsigned cha
 
 }
 
+/* Timeout for the INAK handshake, entering and leaving initialisation mode.
+ * Leaving is the slow one: bxCAN only clears INAK after 11 consecutive recessive
+ * bits on CANRX (44us of idle line at 250kbit/s), and a busy bus can go
+ * milliseconds without a gap that long. The old 2ms timed out on healthy buses,
+ * and the timeout path calls error(), which is fatal. On an idle bus INAK clears
+ * in microseconds, so this costs nothing in the normal case. */
+#define CAN_INAK_TIMEOUT_MS   1000
+
 int can_frequency(can_t *obj, int f)
 {
     int pclk = HAL_RCC_GetPCLK1Freq();
@@ -928,7 +936,7 @@ int can_frequency(can_t *obj, int f)
         /* Get tick */
         tickstart = HAL_GetTick();
         while ((can->MSR & CAN_MSR_INAK) != CAN_MSR_INAK) {
-            if ((HAL_GetTick() - tickstart) > 2) {
+            if ((HAL_GetTick() - tickstart) > CAN_INAK_TIMEOUT_MS) {
                 status = 0;
                 break;
             }
@@ -943,7 +951,7 @@ int can_frequency(can_t *obj, int f)
             /* Get tick */
             tickstart = HAL_GetTick();
             while ((can->MSR & CAN_MSR_INAK) == CAN_MSR_INAK) {
-                if ((HAL_GetTick() - tickstart) > 2) {
+                if ((HAL_GetTick() - tickstart) > CAN_INAK_TIMEOUT_MS) {
                     status = 0;
                     break;
                 }
